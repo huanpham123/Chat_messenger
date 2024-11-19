@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Messenger</title>
+    <style>
+        /* Tổng quan */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: radial-gradient(circle, #1a1a1a, #000);
+            font-family: 'Roboto', sans-serif;
+            color: white;
+        }
+
+        /* Hiệu ứng neon */
+        .neon-text {
+            text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff, 0 0 40px #00f6ff;
+        }
+
+        /* Khung chat */
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 90%;
+            background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #00f6ff;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 20px #00f6ff;
+        }
+
+        /* Khu vực tin nhắn */
+        #chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            font-size: 16px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(90deg, #00f6ff, #0077ff);
+            color: white;
+            box-shadow: 0 0 10px #00f6ff, 0 0 20px #0077ff;
+        }
+
+        .other-message {
+            align-self: flex-start;
+            background: linear-gradient(90deg, #ff00cc, #ff0077);
+            color: white;
+            box-shadow: 0 0 10px #ff00cc, 0 0 20px #ff0077;
+        }
+
+        /* Khu vực nhập tin nhắn */
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background: rgba(20, 20, 20, 0.9);
+            box-shadow: 0 0 15px #00f6ff;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-input input::placeholder {
+            color: #aaa;
+        }
+
+        .chat-input button {
+            padding: 10px 20px;
+            border: none;
+            margin-left: 10px;
+            background: linear-gradient(90deg, #00f6ff, #0077ff);
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00f6ff, 0 0 20px #0077ff;
+        }
+
+        .chat-input button:hover {
+            background: linear-gradient(90deg, #0077ff, #00f6ff);
+            box-shadow: 0 0 15px #00f6ff, 0 0 30px #0077ff;
+        }
+
+        /* Cuộn mượt */
+        #chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #00f6ff;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        const messageInput = document.getElementById("message-input");
+
+        // ID người dùng (phân biệt local user)
+        const currentUser = prompt("Enter your name:");
+
+        // Gửi tin nhắn
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            fetch("/send_message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sender: currentUser, message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateChatBox(data.history);
+                messageInput.value = "";
+            });
+        }
+
+        // Cập nhật khung chat
+        function updateChatBox(messages) {
+            chatBox.innerHTML = "";
+            messages.forEach(chat => {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `message ${chat.sender === currentUser ? "user-message" : "other-message"}`;
+                messageDiv.textContent = `${chat.sender}: ${chat.message}`;
+                chatBox.appendChild(messageDiv);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight; // Cuộn xuống cuối
+        }
+
+        // Cập nhật tin nhắn liên tục
+        setInterval(() => {
+            fetch("/get_messages")
+                .then(response => response.json())
+                .then(data => updateChatBox(data));
+        }, 1000);
+    </script>
+</body>
+</html>
