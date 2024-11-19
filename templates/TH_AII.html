@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Messenger</title>
+    <title>Chat Room</title>
     <style>
         /* Tổng quan */
         body {
@@ -16,11 +16,6 @@
             background: radial-gradient(circle, #1a1a1a, #000);
             font-family: 'Roboto', sans-serif;
             color: white;
-        }
-
-        /* Hiệu ứng neon */
-        .neon-text {
-            text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff, 0 0 40px #00f6ff;
         }
 
         /* Khung chat */
@@ -136,8 +131,8 @@
         const chatBox = document.getElementById("chat-box");
         const messageInput = document.getElementById("message-input");
 
-        // ID người dùng (phân biệt local user)
-        const currentUser = prompt("Enter your name:");
+        let currentUser = prompt("Enter your name:");
+        let roomPassword = prompt("Enter the room password:");
 
         // Gửi tin nhắn
         function sendMessage() {
@@ -147,7 +142,7 @@
             fetch("/send_message", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sender: currentUser, message: message })
+                body: JSON.stringify({ sender: currentUser, message, password: roomPassword }),
             })
             .then(response => response.json())
             .then(data => {
@@ -170,7 +165,7 @@
 
         // Cập nhật tin nhắn liên tục
         setInterval(() => {
-            fetch("/get_messages")
+            fetch("/get_messages?password=" + roomPassword)
                 .then(response => response.json())
                 .then(data => updateChatBox(data));
         }, 1000);
