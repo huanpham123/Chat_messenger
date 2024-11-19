@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room</title>
+    <title>Messenger</title>
     <style>
         /* Tổng quan */
         body {
@@ -16,6 +16,11 @@
             background: radial-gradient(circle, #1a1a1a, #000);
             font-family: 'Roboto', sans-serif;
             color: white;
+        }
+
+        /* Hiệu ứng neon */
+        .neon-text {
+            text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff, 0 0 40px #00f6ff;
         }
 
         /* Khung chat */
@@ -119,56 +124,79 @@
     </style>
 </head>
 <body>
-    <div class="chat-container">
+    <div id="login">
+        <h2 class="neon-text">Vui lòng nhập mật khẩu</h2>
+        <input type="password" id="password-input" placeholder="Enter password" />
+        <button onclick="joinChat()">Join</button>
+    </div>
+
+    <div class="chat-container" id="chat-container" style="display: none;">
         <div id="chat-box"></div>
         <div class="chat-input">
-            <input type="text" id="message-input" placeholder="Type a message...">
+            <input type="text" id="message-input" placeholder="Type a message..." />
             <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
-        const chatBox = document.getElementById("chat-box");
-        const messageInput = document.getElementById("message-input");
+        let roomPassword = null;
+        let currentUser = prompt("Nhập tên của bạn:");
 
-        let currentUser = prompt("Enter your name:");
-        let roomPassword = prompt("Enter the room password:");
-
-        // Gửi tin nhắn
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            fetch("/send_message", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sender: currentUser, message, password: roomPassword }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                updateChatBox(data.history);
-                messageInput.value = "";
-            });
+        // Function to handle user joining the chat after entering password
+        function joinChat() {
+            const password = document.getElementById("password-input").value;
+            if (password === "123456") {
+                roomPassword = password;
+                document.getElementById("login").style.display = "none";
+                document.getElementById("chat-container").style.display = "flex";
+                fetchMessages();
+            } else {
+                alert("Incorrect password. Try again.");
+            }
         }
 
-        // Cập nhật khung chat
+        // Function to send a message
+        function sendMessage() {
+            const message = document.getElementById("message-input").value.trim();
+            if (message) {
+                fetch("/send_message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sender: currentUser,
+                        message: message,
+                        room: roomPassword
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateChatBox(data.history);
+                    document.getElementById("message-input").value = "";
+                });
+            }
+        }
+
+        // Function to fetch messages from server
+        function fetchMessages() {
+            setInterval(() => {
+                fetch(`/get_messages?room=${roomPassword}`)
+                    .then(response => response.json())
+                    .then(data => updateChatBox(data));
+            }, 1000);
+        }
+
+        // Update chat box with new messages
         function updateChatBox(messages) {
+            const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = "";
-            messages.forEach(chat => {
+            messages.forEach(message => {
                 const messageDiv = document.createElement("div");
-                messageDiv.className = `message ${chat.sender === currentUser ? "user-message" : "other-message"}`;
-                messageDiv.textContent = `${chat.sender}: ${chat.message}`;
+                messageDiv.className = `message ${message.sender === currentUser ? "user-message" : "other-message"}`;
+                messageDiv.textContent = `${message.sender}: ${message.message}`;
                 chatBox.appendChild(messageDiv);
             });
-            chatBox.scrollTop = chatBox.scrollHeight; // Cuộn xuống cuối
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
-
-        // Cập nhật tin nhắn liên tục
-        setInterval(() => {
-            fetch("/get_messages?password=" + roomPassword)
-                .then(response => response.json())
-                .then(data => updateChatBox(data));
-        }, 1000);
     </script>
 </body>
 </html>
